@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "omni-pid-optimizer"
+version = "0.1.0"
+description = "PSO and GA tuning of the Geomagic Touch (Phantom Omni) joint PID controllers"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = ["numpy>=1.22", "matplotlib>=3.5", "pyyaml>=6.0"]
+
+[project.optional-dependencies]
+test = ["pytest>=7"]
+
+[tool.setuptools]
+packages = ["src", "src.optimizers"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -1,0 +1,36 @@
+
+scenario                 controller J      Kp      Ki      Kd    OS%  ts[ms]   ess°    ITAE    PM°  DM[ms]    cost
+------------------------------------------------------------------------------------------------------------------
+local 1 kHz loop         Thesis PD  1  1.5920  0.0000  0.0989    0.0    1499   3.62  0.2415   66.6    32.6   4.573
+local 1 kHz loop         Thesis PD  2  1.4810  0.0000  0.0665    0.0    1499   7.84  0.5179   66.9    32.7   8.130
+local 1 kHz loop         Thesis PD  3  0.5678  0.0000  0.0276    0.0    1499   5.26  0.3514   66.8    32.7   5.963
+local 1 kHz loop         QUARC PID  1  2.7262  1.2000  0.0808    3.1    1499   1.08  0.0885   48.4    23.3   2.546
+local 1 kHz loop         PSO-PID    1  1.0621  3.3516  0.0691    0.3     232   0.05  0.0092   60.4    42.2   0.303
+local 1 kHz loop         PSO-PID    2  1.1000  6.6117  0.0474    0.9     231   0.06  0.0143   55.6    38.1   0.340
+local 1 kHz loop         PSO-PID    3  0.4078  1.8709  0.0231    1.9     244   0.26  0.0255   65.1    40.6   0.535
+local 1 kHz loop         GA-PID     1  0.9095  3.1899  0.0575    1.6     226   0.06  0.0134   55.8    45.3   0.347
+local 1 kHz loop         GA-PID     2  1.2057  7.1030  0.0474    0.7     217   0.12  0.0117   53.4    35.4   0.347
+local 1 kHz loop         GA-PID     3  0.4173  1.7201  0.0245    1.7     305   0.29  0.0224   67.3    39.8   0.600
+20 ms UDP loop delay     Thesis PD  1  1.5920  0.0000  0.0989    0.0    1499   3.62  0.2399   66.6    32.6   4.566
+20 ms UDP loop delay     Thesis PD  2  1.4810  0.0000  0.0665    0.0    1499   7.76  0.5088   66.9    32.7   8.048
+20 ms UDP loop delay     Thesis PD  3  0.5678  0.0000  0.0276    0.0    1499   5.09  0.3347   66.8    32.7   5.800
+20 ms UDP loop delay     QUARC PID  1  2.7262  1.2000  0.0808   49.5    1499   1.11  0.0966   48.4    23.3   3.555
+20 ms UDP loop delay     PSO-PID    1  1.0621  3.3516  0.0691    0.0     158   0.01  0.0063   60.4    42.2   0.187
+20 ms UDP loop delay     PSO-PID    2  1.1000  6.6117  0.0474    0.1     159   0.00  0.0044   55.6    38.1   0.179
+20 ms UDP loop delay     PSO-PID    3  0.4078  1.8709  0.0231    1.8     264   0.30  0.0206   65.1    40.6   0.556
+20 ms UDP loop delay     GA-PID     1  0.9095  3.1899  0.0575    4.1     396   0.20  0.0152   55.8    45.3   0.659
+20 ms UDP loop delay     GA-PID     2  1.2057  7.1030  0.0474    3.3     187   0.08  0.0106   53.4    35.4   0.343
+20 ms UDP loop delay     GA-PID     3  0.4173  1.7201  0.0245    1.8     336   0.31  0.0207   67.3    39.8   0.635
+
+Seam welding RMS / max Cartesian error [mm]:
+  Thesis PD  delay    0 ms : RMS 33.787  max 35.140
+  PSO-PID    delay    0 ms : RMS  2.174  max  4.333
+  GA-PID     delay    0 ms : RMS  2.136  max  4.307
+  Thesis PD  delay   20 ms : RMS 33.634  max 34.993
+  PSO-PID    delay   20 ms : RMS  2.214  max  4.539
+  GA-PID     delay   20 ms : RMS  2.142  max  4.464
+  Task-space velocity PID (PSO), local: RMS 0.728  max 1.407
+
+First delay at which any joint becomes unstable: {'Thesis PD': '32.5 ms', 'PSO-PID': '42.5 ms', 'GA-PID': '37.5 ms'}
+
+Plots and summary.md written to /home/alexa/ParticleSwarm/omni_pid_optimizer/results

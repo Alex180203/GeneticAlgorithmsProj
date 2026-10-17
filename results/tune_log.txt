@@ -1,0 +1,30 @@
+
+=== PSO | mode=full | loop=position ===
+  [PSO joints [1, 2, 3]] iter   0  best cost 18.5395
+  [PSO joints [1, 2, 3]] iter  10  best cost 5.0894
+  [PSO joints [1, 2, 3]] iter  20  best cost 2.3018
+  [PSO joints [1, 2, 3]] iter  30  best cost 1.7308
+  [PSO joints [1, 2, 3]] iter  40  best cost 1.2966
+  [PSO joints [1, 2, 3]] iter  50  best cost 1.1480
+  [PSO joints [1, 2, 3]] iter  59  best cost 1.0499
+  done in 13.7 s, 1830 evaluations, cost 1.0499
+  joint 1: Kp=1.0621  Ki=3.3516  Kd=0.0691   PM=60.4 deg  wc=25.0 rad/s  delay margin=42.2 ms
+  joint 2: Kp=1.1000  Ki=6.6117  Kd=0.0474   PM=55.6 deg  wc=25.4 rad/s  delay margin=38.1 ms
+  joint 3: Kp=0.4078  Ki=1.8709  Kd=0.0231   PM=65.1 deg  wc=28.0 rad/s  delay margin=40.6 ms
+
+=== GA | mode=full | loop=position ===
+  [GA joints [1, 2, 3]] iter   0  best cost 16.8101
+  [GA joints [1, 2, 3]] iter  10  best cost 7.7042
+  [GA joints [1, 2, 3]] iter  20  best cost 3.3787
+  [GA joints [1, 2, 3]] iter  30  best cost 2.7987
+  [GA joints [1, 2, 3]] iter  40  best cost 1.8452
+  [GA joints [1, 2, 3]] iter  50  best cost 1.5487
+  [GA joints [1, 2, 3]] iter  59  best cost 1.4660
+  done in 14.8 s, 1710 evaluations, cost 1.4660
+  joint 1: Kp=0.9095  Ki=3.1899  Kd=0.0575   PM=55.8 deg  wc=21.5 rad/s  delay margin=45.3 ms
+  joint 2: Kp=1.2057  Ki=7.1030  Kd=0.0474   PM=53.4 deg  wc=26.4 rad/s  delay margin=35.4 ms
+  joint 3: Kp=0.4173  Ki=1.7201  Kd=0.0245   PM=67.3 deg  wc=29.5 rad/s  delay margin=39.8 ms
+
+Gains saved to /home/alexa/ParticleSwarm/omni_pid_optimizer/results/gains_position.json
+Thesis PD cost on the same objective: 18.5395
+Plots saved in /home/alexa/ParticleSwarm/omni_pid_optimizer/results

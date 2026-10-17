@@ -1,0 +1,82 @@
+# Geomagic Touch (Phantom Omni) - physical, timing and optimisation parameters.
+# Source: "Omni Bundle - Haptic Device's Industrial Approach" (Gavan, 2026), Sec. 7.9.
+
+kinematics:
+  L1: 0.131            # [m] upper arm
+  L2: 0.131            # [m] forearm
+  workspace:
+    r_min: 0.05        # [m] safety shell inner radius
+    r_max: 0.25        # [m] safety shell outer radius
+    max_step: 0.15     # [m] max Cartesian jump between consecutive targets
+  dls_lambda: [0.01, 0.05]   # damped least-squares damping range
+
+dynamics:
+  joints: [base, shoulder, elbow]
+  J: [0.0031, 0.0022, 0.0009]      # [kg m^2]
+  B: [0.0089, 0.0170, 0.0058]      # [N m s / rad]
+  # d_i(t): constant gravity/static bias + smooth Coulomb friction.
+  # Chosen so the thesis PD gains leave the documented 3-8 deg steady-state error.
+  bias:    [0.100, 0.200, 0.050]   # [N m]
+  coulomb: [0.010, 0.015, 0.008]   # [N m]
+  coulomb_smoothing: 0.01          # [rad/s] tanh velocity scale
+  # Peak torque = 3.3 N peak tip force x lever arm (L1+L2 for joints 1-2, L2 for joint 3)
+  tip_force_peak: 3.3              # [N]
+  tip_force_continuous: 0.88       # [N]
+  tau_max: [0.865, 0.865, 0.432]   # [N m]
+  tau_cont: [0.231, 0.231, 0.115]  # [N m]
+
+timing:
+  Ts: 0.001                # [s] QUARC real-time loop (1 kHz)
+  T_udp: 0.020             # [s] UDP command/feedback period (50 Hz)
+  delay_margin_ref: 0.0349 # [s] thesis: wc = 35 rad/s, PM = 70 deg
+  deriv_cutoff_hz: 100.0   # derivative low-pass filter cutoff
+
+baselines:
+  thesis_pd:               # frequency-domain PD design (simulation baseline)
+    kp: [1.592, 1.481, 0.5678]
+    ki: [0.0, 0.0, 0.0]
+    kd: [0.0989, 0.0665, 0.0276]
+  quarc_pid_joint1:        # manual hardware tuning (joint 1 only)
+    kp: 2.7262
+    ki: 1.2000
+    kd: 0.0808
+
+optimization:
+  loop: position
+  step_amplitude: 0.3      # [rad] position step (or [rad/s] for velocity loop)
+  duration: 1.5            # [s] simulated horizon per evaluation
+  # The cost is averaged over these in-loop feedback delays: a local 1 kHz loop
+  # and a loop closed over one UDP period. This makes the tuning delay-aware.
+  scenario_delays: [0.0, 0.020]
+  bounds:
+    position: {kp: [0.1, 8.0], ki: [0.0, 8.0], kd: [0.0, 0.4]}
+    velocity: {kp: [0.001, 0.5], ki: [0.0, 10.0], kd: [0.0, 0.005]}
+  weights:
+    itae: 4.0
+    overshoot: 2.0        # per unit overshoot (0.1 = 10 %)
+    settling: 1.0         # per second
+    ess: 10.0             # per unit steady-state error
+    torque_rms: 0.5       # per unit of RMS torque above continuous rating
+  pm_min_deg: 45.0         # phase-margin floor (penalised below)
+  pm_penalty: 5.0
+  dm_min: 0.030            # [s] delay-margin floor (1.5 UDP periods), penalised below
+  dm_penalty: 5.0
+  pso:
+    swarm_size: 30
+    iterations: 60
+    w_start: 0.9
+    w_end: 0.4
+    c1: 1.6               # cognitive
+    c2: 1.6               # social
+    v_max_frac: 0.2       # velocity clamp as fraction of the search range
+  ga:
+    population: 30
+    generations: 60
+    tournament_k: 3
+    crossover: sbx        # sbx | blx
+    crossover_rate: 0.9
+    sbx_eta: 15.0
+    blx_alpha: 0.5
+    mutation_rate: 0.2    # per gene
+    mutation_sigma: 0.1   # fraction of range
+    elitism: 2
