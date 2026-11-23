@@ -1,21 +1,7 @@
-"""Discrete PID with clamping anti-windup and a low-pass-filtered derivative.
-
-All gains/states are numpy arrays so a whole swarm/population (shape (N, M):
-N candidates x M joints) is simulated in one vectorised pass.
-"""
-
 import numpy as np
 
 
 class DiscretePID:
-    """u = Kp e + Ki sum(e) Ts - Kd d(y_f)/dt, saturated to +/- u_max.
-
-    * Derivative acts on the measurement (no derivative kick on steps) and is
-      filtered by a first-order low-pass with cutoff ``deriv_cutoff_hz``.
-    * Anti-windup by conditional integration: the integrator freezes while the
-      output is saturated *and* the error would push it further into saturation.
-    """
-
     def __init__(self, kp, ki, kd, Ts, u_max, deriv_cutoff_hz=100.0):
         self.kp = np.asarray(kp, dtype=float)
         self.ki = np.asarray(ki, dtype=float)
@@ -50,7 +36,6 @@ class DiscretePID:
 
 
 def pid_frequency_response(kp, ki, kd, w, deriv_cutoff_hz=100.0):
-    """Continuous-time C(jw) of the filtered PID (for Bode / phase margin)."""
     s = 1j * np.asarray(w)
     tf = 1.0 / (2 * np.pi * deriv_cutoff_hz) if deriv_cutoff_hz else 0.0
     kp, ki, kd = (np.asarray(g, dtype=float)[..., None] for g in (kp, ki, kd))

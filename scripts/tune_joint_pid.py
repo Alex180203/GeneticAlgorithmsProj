@@ -1,12 +1,3 @@
-"""Tune the Phantom Omni joint PID gains with PSO and/or GA.
-
-Examples
---------
-    python scripts/tune_joint_pid.py                         # PSO + GA, full 9-parameter vector
-    python scripts/tune_joint_pid.py --method pso --mode per-joint
-    python scripts/tune_joint_pid.py --loop velocity --method pso
-"""
-
 import argparse
 import json
 import sys
@@ -17,23 +8,21 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from src import PROJECT_ROOT, load_config  # noqa: E402
-from src.objective import PIDObjective, stability_margins  # noqa: E402
-from src.optimizers import OptimizationResult, ga, pso  # noqa: E402
-from src import visualizer as viz  # noqa: E402
+from src import PROJECT_ROOT, load_config
+from src.objective import PIDObjective, stability_margins
+from src.optimizers import OptimizationResult, ga, pso
+from src import visualizer as viz
 
 OPTIMIZERS = {"pso": pso, "ga": ga}
 LABELS = {"pso": "PSO-PID", "ga": "GA-PID"}
 
 
 def thesis_seed(cfg, joints):
-    """The thesis PD design, used both as a reference and as one seeded individual."""
     b = cfg["baselines"]["thesis_pd"]
     return np.ravel([[b["kp"][j], b["ki"][j], b["kd"][j]] for j in joints])
 
 
 def run_tuning(cfg, method="pso", mode="full", loop="position", seed=0, iterations=None, verbose=True):
-    """Returns (gains dict with kp/ki/kd lists of length 3, combined OptimizationResult)."""
     opt_cfg = dict(cfg["optimization"][method])
     if iterations:
         opt_cfg["iterations" if method == "pso" else "generations"] = iterations
@@ -53,7 +42,6 @@ def run_tuning(cfg, method="pso", mode="full", loop="position", seed=0, iteratio
             best[3 * j: 3 * j + 3] = r.best_x[3 * k: 3 * k + 3]
         parts.append(r)
 
-    # Combine the per-joint runs into one 9-D result (sum of costs, concatenated populations)
     combined = OptimizationResult(
         best_x=best, best_cost=float(sum(p.best_cost for p in parts)),
         best_history=list(np.sum([p.best_history for p in parts], axis=0)),

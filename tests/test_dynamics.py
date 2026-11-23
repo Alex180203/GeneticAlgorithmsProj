@@ -6,10 +6,10 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from src import load_config  # noqa: E402
-from src.dynamics import JointPlant, simulate_step  # noqa: E402
-from src.objective import PIDObjective, stability_margins, step_metrics  # noqa: E402
-from src.optimizers import ga, pso  # noqa: E402
+from src import load_config
+from src.dynamics import JointPlant, simulate_step
+from src.objective import PIDObjective, stability_margins, step_metrics
+from src.optimizers import ga, pso
 
 CFG = load_config()
 PLANT = JointPlant.from_config(CFG)
@@ -18,7 +18,6 @@ KP, KI, KD = (np.array(PD[k]) for k in ("kp", "ki", "kd"))
 
 
 def test_thesis_pd_margins_match_thesis():
-    """Ideal loop: w_c = 35 rad/s, PM = 70 deg  =>  delay margin 34.9 ms."""
     pm, wc, dm = stability_margins(KP, KI, KD, PLANT.J, PLANT.B, deriv_cutoff_hz=0)
     np.testing.assert_allclose(wc, 35.0, atol=0.1)
     np.testing.assert_allclose(pm, 70.0, atol=0.1)
@@ -34,7 +33,6 @@ def test_step_response_converges_without_disturbance():
 
 
 def test_pd_has_documented_steady_state_error():
-    """Friction/gravity bias leaves 3-8 deg steady-state error under pure PD."""
     m = step_metrics(simulate_step(KP, KI, KD, PLANT, 0.3, 1.5), 0.3)
     ess_deg = np.degrees(0.3 * m["ess"][0])
     assert np.all((ess_deg >= 3.0) & (ess_deg <= 8.0)), ess_deg
@@ -65,7 +63,6 @@ def test_stable_below_delay_margin():
 
 
 def test_unstable_above_delay_margin():
-    """Beyond tau_d,max = 34.9 ms the loop oscillates with growing amplitude."""
     amp, finite = _final_amplitude(0.040)
     assert (not finite) or np.all(amp > 0.3)
 
@@ -83,5 +80,5 @@ def test_optimizers_beat_thesis_pd(optimizer, key):
     res = optimizer(obj, obj.lb, obj.ub, seed=3, **kw)
     baseline = obj(np.array([KP[0], KI[0], KD[0]]))[0]
     assert res.best_cost < 0.5 * baseline
-    assert res.best_history == sorted(res.best_history, reverse=True)      # monotone best
+    assert res.best_history == sorted(res.best_history, reverse=True)
     assert np.all(res.best_x >= obj.lb) and np.all(res.best_x <= obj.ub)

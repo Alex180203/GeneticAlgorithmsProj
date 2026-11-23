@@ -6,7 +6,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from src import kinematics as kin  # noqa: E402
+from src import kinematics as kin
 
 L = 0.131
 
@@ -30,7 +30,7 @@ def test_fk_ik_reciprocity():
 
 def test_ik_is_elbow_up():
     q = kin.inverse_kinematics([0.15, 0.02, -0.05])
-    assert q[2] > 0      # + sign in q3 = atan2(+sqrt(1 - D^2), D)
+    assert q[2] > 0
 
 
 def test_fk_known_poses():
@@ -53,9 +53,9 @@ def test_workspace_shell_rejects(p):
 
 
 def test_workspace_max_step_jump():
-    kin.inverse_kinematics([0.15, 0.0, 0.0], p_prev=[0.15, 0.10, 0.0])          # 0.10 m: ok
+    kin.inverse_kinematics([0.15, 0.0, 0.0], p_prev=[0.15, 0.10, 0.0])
     with pytest.raises(kin.WorkspaceError):
-        kin.inverse_kinematics([0.15, 0.08, 0.0], p_prev=[0.15, -0.08, 0.0])   # 0.16 m: too far
+        kin.inverse_kinematics([0.15, 0.08, 0.0], p_prev=[0.15, -0.08, 0.0])
 
 
 def test_jacobian_matches_finite_difference():
@@ -74,7 +74,7 @@ def test_dls_inverse_close_to_inverse_away_from_singularity():
 
 
 def test_dls_bounded_at_singularity():
-    J = kin.jacobian([0.0, 0.0, 0.0])            # arm fully stretched: rank deficient
+    J = kin.jacobian([0.0, 0.0, 0.0])
     lam = kin.dls_lambda(J)
     assert 0.01 <= lam <= 0.05 and lam > 0.04
     assert np.all(np.isfinite(kin.dls_inverse(J)))

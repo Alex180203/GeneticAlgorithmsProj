@@ -1,15 +1,3 @@
-"""Discrete 1 kHz simulation of the decoupled joint dynamics
-
-    J_i q_i'' + B_i q_i' + d_i(q_i') = tau_i,
-    d_i = bias_i + coulomb_i * tanh(q_i' / v_s)        (gravity/static + Coulomb)
-
-with torque saturation, an in-loop transport delay (feedback over UDP) and an
-optional zero-order hold on the feedback/reference at the UDP rate.
-
-Every simulator is vectorised: gains of shape (N, M) simulate N candidate
-controllers on M joints simultaneously.
-"""
-
 from dataclasses import dataclass
 
 import numpy as np
@@ -46,7 +34,6 @@ class JointPlant:
 
 
 def plant_frequency_response(J, B, w, loop="position"):
-    """H_pos = 1/(s(Js+B)),  H_vel = 1/(Js+B)."""
     s = 1j * np.asarray(w)
     J = np.asarray(J, dtype=float)[..., None]
     B = np.asarray(B, dtype=float)[..., None]
@@ -55,7 +42,6 @@ def plant_frequency_response(J, B, w, loop="position"):
 
 
 def _step(plant, q, qd, tau, Ts, method, with_disturbance):
-    """Advance one sample with ZOH torque (RK4 or semi-implicit Euler)."""
     if method == "euler":
         qd_new = qd + Ts * plant.accel(qd, tau, with_disturbance)
         return q + Ts * qd_new, qd_new
@@ -72,11 +58,6 @@ def _step(plant, q, qd, tau, Ts, method, with_disturbance):
 def simulate(kp, ki, kd, plant, ref, Ts=0.001, loop="position", delay=0.0,
              feedback_period=None, deriv_cutoff_hz=100.0, saturate=True,
              with_disturbance=True, method="rk4", q0=None):
-    """Closed-loop simulation for an arbitrary reference.
-
-    ref : array (T,) or (T, M) of position [rad] or velocity [rad/s] references.
-    Returns dict with t (T,), y (T, N, M) controlled output, q, u (T, N, M).
-    """
     kp, ki, kd = np.broadcast_arrays(*(np.atleast_2d(np.asarray(g, dtype=float)) for g in (kp, ki, kd)))
     shape = kp.shape
     ref = np.asarray(ref, dtype=float)
@@ -119,14 +100,12 @@ def simulate_step(kp, ki, kd, plant, amplitude=0.3, duration=1.5, **kw):
 
 
 def zoh_resample(signal, period_steps):
-    """Hold every ``period_steps``-th sample (commands arriving at the UDP rate)."""
     idx = np.arange(len(signal))
     return signal[idx - idx % period_steps]
 
 
 def simulate_joint_tracking(gains, plant, q_ref, Ts=0.001, delay=0.0, ref_period=0.020,
                             deriv_cutoff_hz=100.0):
-    """Joint-space position tracking of q_ref (T, 3) received over UDP at 50 Hz."""
     kp, ki, kd = (np.asarray(g, dtype=float)[None, :] for g in gains)
     q_cmd = zoh_resample(q_ref, max(1, int(round(ref_period / Ts))))
     res = simulate(kp, ki, kd, plant, q_cmd, Ts=Ts, loop="position", delay=delay,
@@ -137,8 +116,6 @@ def simulate_joint_tracking(gains, plant, q_ref, Ts=0.001, delay=0.0, ref_period
 def simulate_task_velocity_tracking(vel_gains, plant, x_ref, xd_ref, q0, Ts=0.001,
                                     Kx=20.0, L1=0.131, L2=0.131, lam_range=(0.01, 0.05),
                                     ref_period=0.020, deriv_cutoff_hz=100.0):
-    """Task-space velocity control: Cartesian P loop + DLS inverse Jacobian
-    producing joint-velocity references for per-joint velocity PIDs."""
     kp, ki, kd = (np.asarray(g, dtype=float) for g in vel_gains)
     pid = DiscretePID(kp, ki, kd, Ts, plant.tau_max, deriv_cutoff_hz)
     P = max(1, int(round(ref_period / Ts)))

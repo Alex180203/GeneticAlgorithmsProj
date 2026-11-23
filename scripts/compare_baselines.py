@@ -1,12 +1,3 @@
-"""Compare Thesis PD vs. Manual QUARC PID vs. PSO-PID vs. GA-PID.
-
-Uses results/gains_position.json from tune_joint_pid.py (runs the tuning first
-if it is missing) and writes plots plus results/summary.md.
-
-    python scripts/compare_baselines.py
-    python scripts/compare_baselines.py --retune      # force a fresh PSO/GA run
-"""
-
 import argparse
 import json
 import sys
@@ -17,12 +8,12 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from src import PROJECT_ROOT, load_config  # noqa: E402
-from src import kinematics as kin  # noqa: E402
-from src import visualizer as viz  # noqa: E402
-from src.dynamics import JointPlant, simulate_joint_tracking, simulate_step, simulate_task_velocity_tracking  # noqa: E402
-from src.objective import PIDObjective, stability_margins, step_metrics  # noqa: E402
-from tune_joint_pid import run_tuning  # noqa: E402
+from src import PROJECT_ROOT, load_config
+from src import kinematics as kin
+from src import visualizer as viz
+from src.dynamics import JointPlant, simulate_joint_tracking, simulate_step, simulate_task_velocity_tracking
+from src.objective import PIDObjective, stability_margins, step_metrics
+from tune_joint_pid import run_tuning
 
 
 def load_or_tune(cfg, out, loop, methods, retune, seed):
@@ -37,7 +28,6 @@ def load_or_tune(cfg, out, loop, methods, retune, seed):
 
 
 def build_controllers(cfg, gains):
-    """{name: (kp, ki, kd, valid_mask)}. QUARC gains exist for joint 1 only."""
     b, q = cfg["baselines"]["thesis_pd"], cfg["baselines"]["quarc_pid_joint1"]
     arr = lambda g: tuple(np.array(g[k], float) for k in ("kp", "ki", "kd"))
     quarc = [a.copy() for a in arr(b)]
@@ -73,7 +63,6 @@ def main(argv=None):
     ctrls = build_controllers(cfg, gains)
     obj = PIDObjective(cfg)
 
-    # ------------------------------------------------------------------ step responses + metrics
     rows = []
     for delay, tag in ((0.0, "local 1 kHz loop"), (T_udp, f"{T_udp * 1e3:.0f} ms UDP loop delay")):
         responses = {}
@@ -97,11 +86,9 @@ def main(argv=None):
         fname = "step_local.png" if delay == 0 else "step_udp_delay.png"
         viz.plot_step_responses(responses, A, out / fname, f"{np.degrees(A):.1f}° step response, {tag}")
 
-    # ------------------------------------------------------------------ Bode
     bode = {n: tuple(np.where(v, g, np.nan) for g in (kp, ki, kd)) for n, (kp, ki, kd, v) in ctrls.items()}
     viz.plot_bode(bode, plant, out / "bode.png", 0.0, fc, Ts)
 
-    # ------------------------------------------------------------------ delay sweep
     delays = np.arange(0.0, 0.0501, 0.0025)
     sweep = {}
     for name, (kp, ki, kd, valid) in ctrls.items():
@@ -118,11 +105,10 @@ def main(argv=None):
     first_unstable = {n: (delays[np.any(s["unstable"], axis=1)][0] * 1e3 if np.any(s["unstable"]) else None)
                       for n, s in sweep.items()}
 
-    # ------------------------------------------------------------------ seam welding (joint space)
     ws = cfg["kinematics"]["workspace"]
     L1, L2 = cfg["kinematics"]["L1"], cfg["kinematics"]["L2"]
     t_all, x_all, xd_all, q_all = kin.seam_welding_trajectory(4.0, Ts, hold=1.5, L1=L1, L2=L2, **ws)
-    weld = t_all >= 0                         # score only the welding motion, not the settling dwell
+    weld = t_all >= 0
     t, x_ref = t_all[weld], x_all[weld]
     seam = {}
     for delay, fname in ((0.0, "seam_welding_local.png"), (T_udp, "seam_welding_udp_delay.png")):
@@ -138,7 +124,6 @@ def main(argv=None):
         viz.plot_seam_welding(t, x_ref, tracks, out / fname,
                               f"Seam welding, joint-space position PID, 50 Hz UDP commands, {lbl}")
 
-    # ------------------------------------------------------------------ task-space velocity control
     vel_gains = load_or_tune(cfg, out, "velocity", ["pso"], False, args.seed)["pso"]
     lam = tuple(cfg["kinematics"]["dls_lambda"])
     q_tv, _ = simulate_task_velocity_tracking(
@@ -152,7 +137,6 @@ def main(argv=None):
                           "Seam welding: joint-space position PID vs task-space velocity PID + DLS Jacobian")
     err_tv = np.linalg.norm(x_tv - x_ref, axis=1) * 1e3
 
-    # ------------------------------------------------------------------ report
     write_summary(out / "summary.md", rows, seam, first_unstable, gains, vel_gains, err_tv, T_udp)
     print_table(rows)
     print("\nSeam welding RMS / max Cartesian error [mm]:")

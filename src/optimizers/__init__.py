@@ -7,14 +7,14 @@ import numpy as np
 class OptimizationResult:
     best_x: np.ndarray
     best_cost: float
-    best_history: list = field(default_factory=list)   # best cost after each iteration
-    mean_history: list = field(default_factory=list)   # population mean cost per iteration
-    positions: list = field(default_factory=list)      # population snapshot per iteration
+    best_history: list = field(default_factory=list)
+    mean_history: list = field(default_factory=list)
+    positions: list = field(default_factory=list)
     n_evals: int = 0
     method: str = ""
 
 
-from .pso import pso  # noqa: E402
-from .ga import ga  # noqa: E402
+from .pso import pso
+from .ga import ga
 
 __all__ = ["OptimizationResult", "pso", "ga"]

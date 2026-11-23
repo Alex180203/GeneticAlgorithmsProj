@@ -1,14 +1,11 @@
-"""Plots: step responses, Bode, convergence, swarm evolution, delay sweep, 3D seam welding."""
-
 import matplotlib
 
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt  # noqa: E402
-import numpy as np  # noqa: E402
+import matplotlib.pyplot as plt
+import numpy as np
 
-from .objective import open_loop  # noqa: E402
+from .objective import open_loop
 
-# Reference categorical palette (fixed order - colour follows the controller, never its rank)
 SERIES = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#6250d6", "#e34948"]
 CONTROLLER_COLORS = {"Thesis PD": SERIES[0], "QUARC PID": SERIES[1], "PSO-PID": SERIES[2], "GA-PID": SERIES[3],
                      "Task-space velocity (PSO)": SERIES[6]}
@@ -38,7 +35,6 @@ def _save(fig, path):
 
 
 def plot_step_responses(responses, amplitude, path, title="Step responses", unit="deg"):
-    """responses: {name: (t, y (T, 3) or None per joint)}; NaN columns are skipped."""
     fig, axes = plt.subplots(1, 3, figsize=(15, 4.2), sharex=True)
     scale = np.degrees(1) if unit == "deg" else 1.0
     for j, ax in enumerate(axes):
@@ -57,7 +53,6 @@ def plot_step_responses(responses, amplitude, path, title="Step responses", unit
 
 
 def plot_bode(controllers, plant, path, delay=0.0, deriv_cutoff_hz=100.0, Ts=0.001, loop="position"):
-    """controllers: {name: (kp, ki, kd) arrays of length 3 (NaN = not available)}."""
     w = np.logspace(-0.5, 3.5, 1500)
     fig, axes = plt.subplots(2, 3, figsize=(15, 6.5), sharex=True)
     for j in range(3):
@@ -89,7 +84,6 @@ def plot_bode(controllers, plant, path, delay=0.0, deriv_cutoff_hz=100.0, Ts=0.0
 
 
 def plot_convergence(results, path, baseline_cost=None):
-    """results: {name: OptimizationResult}."""
     fig, ax = plt.subplots(figsize=(8, 4.5))
     for i, (name, r) in enumerate(results.items()):
         c = color_for(name, i)
@@ -110,7 +104,6 @@ def plot_convergence(results, path, baseline_cost=None):
 
 def plot_swarm_evolution(result, lb, ub, path, joint=0, snapshots=(0, 5, 20, -1), dims=(0, 2),
                          labels=("Kp", "Kd"), marker=None):
-    """Scatter of the population in a 2-D gain plane at several iterations."""
     snaps = [s if s >= 0 else len(result.positions) - 1 for s in snapshots]
     fig, axes = plt.subplots(1, len(snaps), figsize=(4 * len(snaps), 3.8), sharex=True, sharey=True)
     a, b = joint * 3 + dims[0], joint * 3 + dims[1]
@@ -133,7 +126,6 @@ def plot_swarm_evolution(result, lb, ub, path, joint=0, snapshots=(0, 5, 20, -1)
 
 
 def plot_delay_sweep(delays, sweep, path, dm_ref=0.0349, T_udp=0.020):
-    """sweep: {name: {"overshoot": (D, 3), "ITAE": (D, 3), "unstable": (D, 3)}} averaged over joints."""
     fig, axes = plt.subplots(1, 2, figsize=(13, 4.3))
     d_ms = np.asarray(delays) * 1e3
     for i, (name, m) in enumerate(sweep.items()):
@@ -160,7 +152,6 @@ def plot_delay_sweep(delays, sweep, path, dm_ref=0.0349, T_udp=0.020):
 
 
 def plot_seam_welding(t, x_ref, tracks, path, title="Seam-welding trajectory tracking"):
-    """tracks: {name: x_actual (T, 3)} in metres."""
     fig = plt.figure(figsize=(15, 5.2))
     ax3 = fig.add_subplot(1, 2, 1, projection="3d")
     ax3.set_facecolor(SURFACE)
@@ -170,7 +161,6 @@ def plot_seam_welding(t, x_ref, tracks, path, title="Seam-welding trajectory tra
     ax3.set_xlabel("x [mm]")
     ax3.set_ylabel("y [mm]")
     ax3.set_zlabel("z [mm]")
-    # equal metric scaling so millimetre errors are not visually exaggerated
     lo, hi = x_ref.min(axis=0) * 1e3, x_ref.max(axis=0) * 1e3
     half = max(hi - lo) / 2 * 1.1
     for setter, c in zip((ax3.set_xlim, ax3.set_ylim, ax3.set_zlim), (lo + hi) / 2):

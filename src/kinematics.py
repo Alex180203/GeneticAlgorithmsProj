@@ -1,13 +1,3 @@
-"""Kinematics of the 3-DoF Phantom Omni: DH chain, FK, closed-form IK, Jacobian, DLS.
-
-Joint convention
-----------------
-The closed-form FK below is written in *kinematic* joint angles (q1, q2, q3).
-The DH table lists theta_3 = q3_enc - pi/2, where q3_enc is the raw elbow encoder
-angle; i.e. q3 = q3_enc - pi/2. ``dh_forward`` takes encoder angles and
-``encoder_to_kinematic`` / ``kinematic_to_encoder`` convert between the two.
-"""
-
 import numpy as np
 
 L1_DEFAULT = 0.131
@@ -15,11 +5,10 @@ L2_DEFAULT = 0.131
 
 
 class WorkspaceError(ValueError):
-    """Raised when a Cartesian target violates the workspace safety shell."""
+    pass
 
 
 def dh_matrix(theta, d, a, alpha):
-    """Standard Denavit-Hartenberg homogeneous transform."""
     ct, st = np.cos(theta), np.sin(theta)
     ca, sa = np.cos(alpha), np.sin(alpha)
     return np.array([
@@ -43,7 +32,6 @@ def kinematic_to_encoder(q):
 
 
 def dh_forward(q_enc, L1=L1_DEFAULT, L2=L2_DEFAULT):
-    """Tool-frame transform from the DH table (takes encoder angles)."""
     q1, q2, q3 = q_enc
     T = dh_matrix(q1, 0.0, 0.0, -np.pi / 2)
     T = T @ dh_matrix(q2, 0.0, L1, 0.0)
@@ -52,7 +40,6 @@ def dh_forward(q_enc, L1=L1_DEFAULT, L2=L2_DEFAULT):
 
 
 def forward_kinematics(q, L1=L1_DEFAULT, L2=L2_DEFAULT):
-    """Closed-form FK. ``q`` has shape (..., 3); returns (..., 3) positions [m]."""
     q = np.asarray(q, dtype=float)
     q1, q2, q3 = q[..., 0], q[..., 1], q[..., 2]
     rho = L1 * np.cos(q2) + L2 * np.cos(q2 + q3)
@@ -63,7 +50,6 @@ def forward_kinematics(q, L1=L1_DEFAULT, L2=L2_DEFAULT):
 
 
 def check_workspace(p, p_prev=None, r_min=0.05, r_max=0.25, max_step=0.15):
-    """Validate a target against the safety shell and the max-jump limit."""
     p = np.asarray(p, dtype=float)
     r = np.linalg.norm(p)
     if not (r_min <= r <= r_max):
@@ -75,14 +61,13 @@ def check_workspace(p, p_prev=None, r_min=0.05, r_max=0.25, max_step=0.15):
 
 
 def inverse_kinematics(p, L1=L1_DEFAULT, L2=L2_DEFAULT, p_prev=None, check=True, **shell):
-    """Closed-form elbow-up IK: q3 = atan2(+sqrt(1 - D^2), D)."""
     p = np.asarray(p, dtype=float)
     if check:
         check_workspace(p, p_prev, **shell)
     x, y, z = p
     q1 = np.arctan2(y, x)
     rho = np.hypot(x, y)
-    h = -z                                   # FK: z = -(L1 s2 + L2 s23)
+    h = -z
     D = (rho**2 + h**2 - L1**2 - L2**2) / (2 * L1 * L2)
     if abs(D) > 1.0:
         raise WorkspaceError(f"target unreachable (D = {D:.4f})")
@@ -92,7 +77,6 @@ def inverse_kinematics(p, L1=L1_DEFAULT, L2=L2_DEFAULT, p_prev=None, check=True,
 
 
 def jacobian(q, L1=L1_DEFAULT, L2=L2_DEFAULT):
-    """Analytic 3x3 linear-velocity Jacobian of ``forward_kinematics``."""
     q1, q2, q3 = q
     s1, c1 = np.sin(q1), np.cos(q1)
     s2, c2 = np.sin(q2), np.cos(q2)
@@ -108,7 +92,6 @@ def jacobian(q, L1=L1_DEFAULT, L2=L2_DEFAULT):
 
 
 def dls_lambda(J, lam_range=(0.01, 0.05), sigma_threshold=0.05):
-    """Adaptive damping: grows from lam_min to lam_max as sigma_min -> 0."""
     lam_min, lam_max = lam_range
     sigma_min = np.linalg.svd(J, compute_uv=False)[-1]
     if sigma_min >= sigma_threshold:
@@ -117,7 +100,6 @@ def dls_lambda(J, lam_range=(0.01, 0.05), sigma_threshold=0.05):
 
 
 def dls_inverse(J, lam=None, lam_range=(0.01, 0.05)):
-    """Damped least-squares inverse J^T (J J^T + lambda^2 I)^-1."""
     if lam is None:
         lam = dls_lambda(J, lam_range)
     lam = float(np.clip(lam, *lam_range))
@@ -126,19 +108,11 @@ def dls_inverse(J, lam=None, lam_range=(0.01, 0.05)):
 
 def seam_welding_trajectory(duration=4.0, Ts=0.001, center=(0.15, 0.0, -0.04), seam_length=0.12,
                             weave_amp=0.003, weave_hz=2.0, hold=0.0, L1=L1_DEFAULT, L2=L2_DEFAULT, **shell):
-    """Straight weld seam along y with a sinusoidal weave across it (along x).
-
-    Quintic time scaling gives zero velocity/acceleration at both ends. Every
-    sample is checked against the workspace shell and converted with IK.
-    ``hold`` seconds of dwell at the seam start are prepended (the arm settles
-    on its start pose before the torch moves). Returns t, x_ref, xd_ref, q_ref
-    (each (T,3) except t); t is negative during the dwell.
-    """
     t = (np.arange(int(round((duration + hold) / Ts))) * Ts) - hold
     s = np.clip(t / duration, 0.0, 1.0)
     s5 = 10 * s**3 - 15 * s**4 + 6 * s**5
     cx, cy, cz = center
-    weave = weave_amp * np.sin(2 * np.pi * weave_hz * np.maximum(t, 0)) * np.sin(np.pi * s)   # fades in/out
+    weave = weave_amp * np.sin(2 * np.pi * weave_hz * np.maximum(t, 0)) * np.sin(np.pi * s)
     x_ref = np.column_stack([cx + weave, cy - seam_length / 2 + seam_length * s5, np.full_like(t, cz)])
     xd_ref = np.gradient(x_ref, Ts, axis=0)
     q_ref = np.empty_like(x_ref)

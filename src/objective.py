@@ -1,6 +1,3 @@
-"""Cost functions: ITAE, IAE, ISE, overshoot, settling time, steady-state error,
-phase margin and delay margin, combined into a scalar fitness for PSO/GA."""
-
 import numpy as np
 
 from .controllers import pid_frequency_response
@@ -9,9 +6,7 @@ from .dynamics import JointPlant, plant_frequency_response, simulate_step
 W_GRID = np.logspace(-1, 4, 6000)
 
 
-# --------------------------------------------------------------------------- time domain
 def step_metrics(res, amplitude, settle_band=0.02, ss_window=0.1):
-    """Metrics of a step response; every entry has shape (N, M)."""
     t, y, u = res["t"], res["y"], res["u"]
     Ts = t[1] - t[0]
     e = amplitude - y
@@ -26,7 +21,6 @@ def step_metrics(res, amplitude, settle_band=0.02, ss_window=0.1):
     settling = np.where(outside[-1], t[-1], settling)
 
     n_ss = max(1, int(round(ss_window / Ts)))
-    # sustained oscillation (saturation-bounded limit cycle) counts as unstable
     tail = np.nan_to_num(y[-3 * n_ss:], nan=0.0)
     diverged |= (tail.max(axis=0) - tail.min(axis=0)) > 0.1 * abs(amplitude)
     peak = np.nanmax(np.sign(amplitude) * y, axis=0) / abs(amplitude)
@@ -44,14 +38,11 @@ def step_metrics(res, amplitude, settle_band=0.02, ss_window=0.1):
     }
 
 
-# --------------------------------------------------------------------------- frequency domain
 def open_loop(kp, ki, kd, J, B, w=W_GRID, loop="position", delay=0.0, deriv_cutoff_hz=100.0, Ts=0.0):
-    """L(jw) = C(jw) H(jw) exp(-jw(delay + Ts/2)) with unwrapped phase [deg]."""
     C = pid_frequency_response(kp, ki, kd, w, deriv_cutoff_hz)
     H = plant_frequency_response(J, B, w, loop)
     tau = delay + Ts / 2
     mag = np.abs(C * H)
-    # Re(C) > 0 so angle(C) is in (-90, 90); the plant phase is analytic -> no wrapping.
     plant_phase = -np.arctan2(np.asarray(J, float)[..., None] * w, np.asarray(B, float)[..., None])
     if loop == "position":
         plant_phase = plant_phase - np.pi / 2
@@ -60,11 +51,10 @@ def open_loop(kp, ki, kd, J, B, w=W_GRID, loop="position", delay=0.0, deriv_cuto
 
 
 def stability_margins(kp, ki, kd, J, B, loop="position", delay=0.0, deriv_cutoff_hz=100.0, Ts=0.0, w=W_GRID):
-    """Phase margin [deg], crossover [rad/s], delay margin [s] (shape of the gains)."""
     mag, phase = open_loop(kp, ki, kd, J, B, w, loop, delay, deriv_cutoff_hz, Ts)
     above = mag >= 1.0
     has_cross = above.any(axis=-1)
-    i = mag.shape[-1] - 1 - np.argmax(above[..., ::-1], axis=-1)        # last crossing
+    i = mag.shape[-1] - 1 - np.argmax(above[..., ::-1], axis=-1)
     i = np.minimum(i, mag.shape[-1] - 2)
     lm = np.log(mag)
     i0 = np.take_along_axis(lm, i[..., None], -1)[..., 0]
@@ -82,10 +72,7 @@ def stability_margins(kp, ki, kd, J, B, loop="position", delay=0.0, deriv_cutoff
     return pm, wc, dm
 
 
-# --------------------------------------------------------------------------- scalar cost
 class PIDObjective:
-    """Vectorised fitness for a population X of shape (N, 3*M): [kp, ki, kd] per joint."""
-
     def __init__(self, cfg, joints=(0, 1, 2), loop=None, scenario_delays=None):
         opt = cfg["optimization"]
         self.cfg = cfg
@@ -116,7 +103,6 @@ class PIDObjective:
         return G[..., 0], G[..., 1], G[..., 2]
 
     def evaluate(self, X, delay=0.0):
-        """Simulate one delay scenario; returns metrics dict + per-joint cost (N, M)."""
         kp, ki, kd = self.split(X)
         res = simulate_step(kp, ki, kd, self.plant, self.amplitude, self.duration, Ts=self.Ts,
                             loop=self.loop, delay=delay, deriv_cutoff_hz=self.fc)

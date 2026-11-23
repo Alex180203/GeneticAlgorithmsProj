@@ -1,24 +1,4 @@
 #!/usr/bin/env python3
-"""
-Ask Gemini and/or ChatGPT "What is the time?" every minute for 4 hours.
-
-Each answer is printed and appended to a CSV together with your real local
-time, so you can compare what the model said with what the time actually was.
-
-Setup:
-    pip install requests
-    export GEMINI_API_KEY="..."      # Windows PowerShell: $env:GEMINI_API_KEY="..."
-    export OPENAI_API_KEY="..."
-
-Run:
-    python ask_time.py                       # uses every provider that has a key set
-    python ask_time.py --provider gemini
-    python ask_time.py --provider openai --interval 60 --duration 240
-    python ask_time.py --gemini-model gemini-flash-latest --openai-model gpt-5.4-mini
-
-Stop early with Ctrl+C; everything sent so far is already saved.
-"""
-
 import argparse
 import csv
 import os
@@ -31,7 +11,7 @@ import requests
 QUESTION = "What is the time?"
 TIMEOUT_S = 30
 
-DEFAULT_GEMINI_MODEL = "gemini-flash-lite-latest"  # alias that tracks Google's newest Flash-Lite
+DEFAULT_GEMINI_MODEL = "gemini-flash-lite-latest"
 DEFAULT_OPENAI_MODEL = "gpt-5.4-mini"
 
 
@@ -62,7 +42,6 @@ def ask_openai(question: str, model: str, api_key: str) -> str:
 
 
 def build_providers(choice: str, gemini_model: str, openai_model: str):
-    """Return a list of (name, model, callable) for the providers to query."""
     gemini_key = os.getenv("GEMINI_API_KEY")
     openai_key = os.getenv("OPENAI_API_KEY")
     providers = []
@@ -122,7 +101,6 @@ def main():
         start = time.monotonic()
         try:
             for i in range(total_rounds):
-                # Schedule against the start time so slow responses don't make the loop drift.
                 wait = start + i * args.interval - time.monotonic()
                 if wait > 0:
                     time.sleep(wait)
@@ -132,7 +110,7 @@ def main():
                     t0 = time.perf_counter()
                     try:
                         answer, status = ask(args.question), "ok"
-                    except Exception as exc:  # keep going no matter what one call does
+                    except Exception as exc:
                         answer, status = describe_error(exc), "error"
                     latency = int((time.perf_counter() - t0) * 1000)
 

@@ -1,11 +1,3 @@
-"""Real-coded Genetic Algorithm.
-
-* tournament selection (size k)
-* SBX (simulated binary, Deb & Agrawal) or BLX-alpha crossover
-* Gaussian mutation (sigma relative to the gene range), bounded
-* elitism: the best ``elitism`` individuals survive unchanged
-"""
-
 import numpy as np
 
 from . import OptimizationResult

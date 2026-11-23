@@ -1,13 +1,3 @@
-"""Global-best Particle Swarm Optimization.
-
-v <- w v + c1 r1 (p_best - x) + c2 r2 (g_best - x)
-x <- x + v
-
-* inertia weight w decreases linearly from w_start to w_end (exploration -> exploitation)
-* cognitive/social coefficients are clamped to c1 + c2 <= 4 (Clerc stability bound)
-* velocity is clamped to +/- v_max_frac * (ub - lb); walls reflect the particle
-"""
-
 import numpy as np
 
 from . import OptimizationResult
@@ -23,7 +13,7 @@ def pso(cost_fn, lb, ub, swarm_size=30, iterations=60, w_start=0.9, w_end=0.4, c
     v_max = v_max_frac * span
 
     x = lb + rng.random((swarm_size, lb.size)) * span
-    if x0 is not None:                                   # seed known designs into the swarm
+    if x0 is not None:
         x0 = np.atleast_2d(x0)
         x[: len(x0)] = np.clip(x0, lb, ub)
     v = rng.uniform(-v_max, v_max, x.shape)
@@ -40,7 +30,7 @@ def pso(cost_fn, lb, ub, swarm_size=30, iterations=60, w_start=0.9, w_end=0.4, c
         v = w * v + c1 * r1 * (p_best - x) + c2 * r2 * (g_best - x)
         v = np.clip(v, -v_max, v_max)
         x = x + v
-        low, high = x < lb, x > ub                       # reflective boundaries
+        low, high = x < lb, x > ub
         x = np.where(low, 2 * lb - x, np.where(high, 2 * ub - x, x))
         v = np.where(low | high, -0.5 * v, v)
         x = np.clip(x, lb, ub)
